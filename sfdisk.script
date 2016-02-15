@@ -1,0 +1,6 @@
+label: dos
+label-id: 0x0016a58b
+device: /dev/sdb
+unit: sectors
+
+/dev/sdb1 : start=        2048, size=      507904, type=c, bootable
