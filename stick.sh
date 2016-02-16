@@ -2,7 +2,7 @@
 set -x
 
 TARGET=/dev/sdb
-KSFILE=lunarsea.ks
+KSFILE=yttrium.ks
 
 echo 'partition table wrangling'
 cat sfdisk.script | sudo sfdisk ${TARGET}
