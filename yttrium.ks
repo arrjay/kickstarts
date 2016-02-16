@@ -125,7 +125,7 @@ while true ; do
         # nop
         ;;
       *)
-        echo "idle" $x/md/sync_action
+        echo "idle" > $md/md/sync_action
         ;;
     esac
   done
@@ -135,9 +135,9 @@ while true ; do
     dev=$(basename $md)
     case ${dev} in
       ${bootdev}|${efidev})
-        read syncstat < $x/md/sync_completed
+        read syncstat < $md/md/sync_completed
         if [ $syncstat == "none" ] ; then
-          $((fscounter--)
+          (( fscounter-- ))
         fi
         ;;
     esac
