@@ -1,9 +1,10 @@
-#version=RHEL7
+#version=DEVEL
 # System authorization information
 auth --enableshadow --passalgo=sha512
 
+# leave this unset for closest-mirror setup
 # Use network installation
-url --url="http://mirrors.kernel.org/centos/7/os/x86_64"
+url --url="http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os"
 
 # Use text mode
 text
@@ -19,41 +20,103 @@ reboot
 
 # Network information
 network  --bootproto=dhcp --device=enp10s0 --onboot=off --ipv6=auto
-network  --bootproto=dhcp --device=br0 --bridgeslaves=enp9s0 --ipv6=auto --activate
-network  --hostname=yttrium.produxi.net
+network  --bootproto=dhcp --device=br0 --bridgeslaves=enp9s0 --ipv6=auto --activate --bridgeopts=ageing-time=15,stp=no --hostname=yttrium.produxi.net
 
 # Root password
 rootpw --iscrypted $6$m95xGSDD7uy.OlhR$1fkOb4IJhARxPZtuc7Mx85tHBY0nf9eEmEE7Zw4Xweh1M4n5kUZ/Ny7xPACUHHfbKNz3dFoxbOurCWpD89YPs.
 # System timezone
 timezone America/New_York --isUtc
+
+# initialize raid devices in %pre, then present to kickstart
+%pre
+#!/bin/bash
+# first, stop and DESTROY all md arrays
+for md in /dev/md[0-9]* ; do
+  parts=$(mdadm --detail $md | awk '$5 ~ "dev" { print $5 }')
+  mdadm --stop $md
+  mdadm --remove $md
+  mdadm --zero-superblock ${parts}
+done
+
+# pci0000:00 is the root pci domain
+# 0000:00:1f.2 is the AHCI controller
+# NOTE: we are assuming there _are_ 4 disks here, just not what their names are.
+dlist=$(for x in /sys/devices/pci0000\:00/0000\:00\:1f.2/ata*/*/*/*/block/* ; do basename $x | grep ^sd ; done)
+
+# loop on the disk list and stamp out partition tables
+for disk in $dlist ; do
+  # delete any partition tables, including gpt backup header
+  dd if=/dev/zero of=/dev/$disk bs=4096 count=35
+  dd if=/dev/zero of=/dev/$disk bs=4096 count=35 seek=$(($(blockdev --getsz /dev/$disk)*512/4096 - 35))
+  # create new GPT table
+  # 501GB /boot, 201GB /boot/efi, remainder to RAID10
+  printf 'mklabel gpt\nmkpart "" efi 1049kB 201mB\nmkpart "" boot 201mB 701mB\nmkpart "" system 701mB 100%%\nquit' | parted /dev/$disk
+  # toggle RAID flags
+  printf 'toggle 1 raid\ntoggle 2 raid\ntoggle 3 raid\nquit' | parted /dev/$disk
+  partprobe /dev/$disk
+done
+
+# make RAID devices
+# counter for disk partition number
+partno=1
+
+# create raid1 1.0 devices
+r1list="boot_efi boot"
+for raid in $r1list ; do
+  parts=''
+  # add partition number to the raid subdevices
+  for disk in $dlist ; do
+    mdadm --zero-superblock /dev/$disk$partno
+    parts="${parts}/dev/$disk$partno "
+  done
+  echo "y" | mdadm -C /dev/md/$raid -o -N $raid --level=1 --raid-devices=4 --metadata=1.0 --homehost=yttrium.produxi.net ${parts}
+  (( partno++ ))
+done
+
+# create raid10 devices
+r10list="system"
+for raid in $r10list ; do
+  parts=''
+  # add partition number to the raid subdevices
+  for disk in $dlist ; do
+    mdadm --zero-superblock /dev/$disk$partno
+    parts="${parts}/dev/$disk$partno "
+  done
+  # hack incase the tail end of the disks are missized
+  # create raid10 volume read-only as we get to reassemble it a lot.
+  echo "y" | mdadm -C /dev/md/$raid -o -N $raid --level=10 --raid-devices=4 --homehost=yttrium.produxi.net ${parts}
+  (( partno++ ))
+done
+
+# now...go back and break boot_efi + boot
+efidisk=$(mdadm -D /dev/md/boot_efi | awk '$7 ~ "dev" { print $7 }' | head -n1)
+mdadm /dev/md/boot_efi --fail $efidisk --remove $efidisk
+mdadm --zero-superblock $efidisk
+mkfs.hfsplus -v boot_efi $efidisk
+efidisk=$(basename $efidisk)
+
+bootdisk=$(mdadm -D /dev/md/boot | awk '$7 ~ "dev" { print $7 }' | head -n1)
+mdadm /dev/md/boot --fail $bootdisk --remove $bootdisk
+mdadm --zero-superblock $bootdisk
+bootdisk=$(basename $bootdisk)
+
+bootvol=${efidisk:0:3}
+
+# write boot(_efi) out in a template, because we're not entirely sure what device we got.
+rm /tmp/r1-include
+printf 'bootloader --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
+printf 'part /boot/efi --fstype=macefi --onpart="%s"\n' $efidisk >> /tmp/r1-include
+printf 'part /boot --fstype=ext4 --onpart="%s"\n' $bootdisk >> /tmp/r1-include
+
+# save existing md config
+mdadm --detail --scan > /tmp/md-scratch
+%end
+
 # System bootloader configuration
-bootloader --append=" crashkernel=auto" --location=mbr --boot-drive=sda
-ignoredisk --only-use=sda,sdb,sdc,sdd
-# Partition clearing information
-clearpart --all --initlabel --drives=sda,sdb,sdc,sdd
-# Disk partitioning information
-# RAID1 for /boot
-part raid.734 --fstype="mdmember" --ondisk=sda --size=501
-part raid.740 --fstype="mdmember" --ondisk=sdb --size=501
-part raid.746 --fstype="mdmember" --ondisk=sdc --size=501
-part raid.752 --fstype="mdmember" --ondisk=sdd --size=501
-
-# RAID1 for /boot/efi
-part raid.962 --fstype="mdmember" --ondisk=sda --size=201
-part raid.968 --fstype="mdmember" --ondisk=sdb --size=201
-part raid.974 --fstype="mdmember" --ondisk=sdc --size=201
-part raid.980 --fstype="mdmember" --ondisk=sdd --size=201
-
-# RAID10 for LVM
-part raid.1224 --fstype="mdmember" --ondisk=sda --size=38669 --grow
-part raid.1230 --fstype="mdmember" --ondisk=sdb --size=38669 --grow
-part raid.1236 --fstype="mdmember" --ondisk=sdc --size=38669 --grow
-part raid.1242 --fstype="mdmember" --ondisk=sdd --size=38669 --grow
-
+bootloader --location=mbr --boot-drive=sda
 # okay, assemble the RAID-y bits
-raid /boot --device=boot --fstype="ext4" --level=RAID1 raid.734 raid.740 raid.746 raid.752
-raid /boot/efi --device=boot_efi --fstype="efi" --level=RAID1 --fsoptions="umask=0077,shortname=winnt" raid.962 raid.968 raid.974 raid.980
-raid pv.1248 --device=pv00 --fstype="lvmpv" --level=RAID10 raid.1224 raid.1230 raid.1236 raid.1242
+%include /tmp/r1-include
+raid pv.1248 --device=system --fstype="lvmpv" --useexisting
 
 # LVM atop RAID10
 volgroup yttrium --pesize=4096 pv.1248
@@ -65,12 +128,7 @@ logvol /var/lib/libvirt  --fstype="xfs" --size=18432 --name=var_lib_libvirt --vg
 services --enabled="chronyd"
 
 %packages
-@^minimal
-@core
-kexec-tools
-openscap
-openscap-scanner
-scap-security-guide
+@^minimal-environment
 chrony
 
 avahi
@@ -90,32 +148,56 @@ virt-install
 
 %end
 
-%addon org_fedora_oscap
-    content-type = scap-security-guide
-    profile = common
-%end
-
-%addon com_redhat_kdump --enable --reserve-mb='auto'
+%addon com_redhat_kdump --disable --reserve-mb='128'
 
 %end
 
-%post
+%anaconda
+pwpolicy root --minlen=0 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy user --minlen=0 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy luks --minlen=0 --minquality=1 --notstrict --nochanges --emptyok
+%end
+
+%post --nochroot	# NOTE: needed because we snarf the md config written in %pre
+# put boot(_efi) back together
+mdadm --assemble boot -c /tmp/md-scratch
+mdadm --assemble boot_efi -c /tmp/md-scratch
+grep boot /tmp/md-scratch >> /mnt/sysimage/etc/mdadm.conf
+mbootdev=$(df --output=source /mnt/sysimage/boot | tail -n1)
+mefidev=$(df --output=source /mnt/sysimage/boot/efi | tail -n1)
+mkfs.ext4 /dev/md/boot
+#mkfs.vfat -F32 -n EFI_BOOT /dev/md/boot_efi
+mkfs.hfsplus -v boot_efi /dev/md/boot_efi
+mount /dev/md/boot /mnt/sysimage/mnt
+mkdir /mnt/sysimage/mnt/efi
+mount /dev/md/boot_efi /mnt/sysimage/mnt/efi
+rsync -a /mnt/sysimage/boot/ /mnt/sysimage/mnt/
+umount /mnt/sysimage/boot/efi
+umount /mnt/sysimage/boot
+umount /mnt/sysimage/mnt/efi
+umount /mnt/sysimage/mnt
+mount /dev/md/boot /mnt/sysimage/boot
+mount /dev/md/boot_efi /mnt/sysimage/boot/efi
+mdadm -a /dev/md/boot ${mbootdev}
+mdadm -a /dev/md/boot_efi ${mefidev}
+grep -v system /tmp/md-scratch >> /mnt/sysimage/etc/md.conf
+grep -v /boot /mnt/sysimage/etc/fstab > /tmp/fstab.1
+printf '/dev/md/boot /boot ext4 defaults 1 2\n' >> /tmp/fstab.1
+printf '/dev/md/boot_efi /boot/efi hfsplus defaults 0 2\n' >> /tmp/fstab.1
+cp /tmp/fstab.1 /mnt/sysimage/etc/fstab
+chroot /mnt/sysimage dracut -f
+
 # strip out rhgb
-sed -i -e 's/rhgb//' $(readlink -f /etc/grub2.cfg)
-
-# bridge configuration
-nmcli con modify "Bridge connection br0" bridge.stp no
-nmcli con modify "Bridge connection br0" bridge.forward-delay 2
-nmcli con delete enp6s0
+sed -i -e 's/rhgb//' $(readlink -f /mnt/sysimage/etc/grub2.cfg)
 
 # https://fedoraproject.org/wiki/Using_UEFI_with_QEMU
-curl https://www.kraxel.org/repos/firmware.repo -o /etc/yum.repos.d/firmware.repo
-yum -y install edk2.git-ovmf-x64
-printf 'nvram = [\n\t"/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd:/usr/share/edk2.git/ovmf-x64/OVMF_VARS-pure-efi.fd",\n]\n' >> /etc/libvirt/qemu.conf
+curl https://www.kraxel.org/repos/firmware.repo -o /mnt/sysimage/etc/yum.repos.d/firmware.repo
+chroot /mnt/sysimage yum -y install edk2.git-ovmf-x64
+printf 'nvram = [\n\t"/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd:/usr/share/edk2.git/ovmf-x64/OVMF_VARS-pure-efi.fd",\n]\n' >> /mnt/sysimage/etc/libvirt/qemu.conf
 
 # force /boot and /boot/efi to be synced before restart
-bootdev=$(basename $(df --output=source /boot/|tail -n1))
-efidev=$(basename $(df --output=source /boot/efi/|tail -n1))
+bootdev=$(basename $(df --output=source /mnt/sysimage/boot/|tail -n1))
+efidev=$(basename $(df --output=source /mnt/sysimage/boot/efi/|tail -n1))
 while true ; do
   # walk all md devices and stop them unless it's the one we want
   for md in /sys/block/md* ; do
@@ -145,6 +227,7 @@ while true ; do
   if [ $fscounter -eq 0 ] ; then
     break
   fi
+  sleep 30
 done
 
 %end
