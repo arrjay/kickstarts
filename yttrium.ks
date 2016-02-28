@@ -5,6 +5,8 @@ auth --enableshadow --passalgo=sha512
 # leave this unset for closest-mirror setup
 # Use network installation
 url --url="http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os"
+repo --name=everything --baseurl="http://mirrors.kernel.org/fedora/releases/22/Everything/x86_64/os"
+repo --name=updates --baseurl="http://mirrors.kernel.org/fedora/updates/22/x86_64"
 
 # Use text mode
 text
