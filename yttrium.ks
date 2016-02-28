@@ -196,7 +196,9 @@ printf '/dev/md/boot_efi /boot/efi hfsplus defaults 0 2\n' >> /tmp/fstab.1
 cp /tmp/fstab.1 /mnt/sysimage/etc/fstab
 printf 'add_drivers+=pl2303\n' >> /mnt/sysimage/etc/dracut.conf
 chroot /mnt/sysimage semanage fcontext -a -t tty_device_t /dev/ttyUSB0
-chroot /mnt/sysimage dracut -f
+for kver in $(chroot /mnt/sysimage rpm -q kernel --qf '%{version}-%{release}.%{arch}') ; do
+chroot /mnt/sysimage dracut -f --kver ${kver}
+done
 
 # mangle the grub config...
 printf 'GRUB_DISABLE_OS_PROBER="true"\n' >> /mnt/sysimage/etc/default/grub
