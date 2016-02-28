@@ -104,7 +104,12 @@ bootvol=${efidisk:0:3}
 
 # write boot(_efi) out in a template, because we're not entirely sure what device we got.
 rm /tmp/r1-include
-printf 'bootloader --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
+# pci-stub notes
+# 8086:3a3e - audio controller
+# 1002:68b8 - video card
+# 1002:aa58 - video hdmi audio
+# 1b73:1100 - USB3 controller
+printf 'bootloader --append="intel_iommu=on pci-stub.ids=8086:3a3e,1002:68b8,1002:aa58,1b73:1100" --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
 printf 'part /boot/efi --fstype=macefi --onpart="%s"\n' $efidisk >> /tmp/r1-include
 printf 'part /boot --fstype=ext4 --onpart="%s"\n' $bootdisk >> /tmp/r1-include
 
