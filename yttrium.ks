@@ -155,6 +155,8 @@ libvirt
 qemu-kvm
 virt-install
 
+nut
+
 %end
 
 %addon com_redhat_kdump --disable --reserve-mb='128'
