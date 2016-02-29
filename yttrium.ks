@@ -21,7 +21,7 @@ lang en_US.UTF-8
 reboot
 
 # Network information
-network  --bootproto=dhcp --device=br1 --bridgeslaves=enp10s0 --bridgeopts=ageing-time=15,stp=no --onboot=on --noipv4 --noipv6
+network  --bootproto=dhcp --device=enp10s0 --onboot=off --ipv6=auto
 network  --bootproto=dhcp --device=br0 --bridgeslaves=enp9s0 --ip=172.16.128.57 --gateway=172.16.128.254 --netmask=255.255.255.0 --nameserver=172.16.128.36 --nameserver=172.16.128.30 --ipv6=auto --activate --bridgeopts=ageing-time=15,stp=no --hostname=yttrium.produxi.net
 
 # Root password
@@ -157,6 +157,8 @@ virt-install
 
 nut
 
+augeas
+
 %end
 
 %addon com_redhat_kdump --disable --reserve-mb='128'
@@ -207,8 +209,14 @@ printf 'GRUB_DISABLE_OS_PROBER="true"\n' >> /mnt/sysimage/etc/default/grub
 sed -i -e 's/rhgb/console=ttyUSB0,115200n8/' $(readlink -f /mnt/sysimage/etc/default/grub)
 chroot /mnt/sysimage grub2-mkconfig > /mnt/sysimage/etc/grub2-efi.cfg
 
-# turn dhcp off on br1
-sed -i -e 's/BOOTPROTO=dhcp/BOOTPROTO=none/' /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
+# disable passwords for ssh
+chroot /mnt/sysimage augtool set /files/etc/ssh/sshd_config/PermitRootLogin without-password
+mkdir /mnt/sysimage/root/.ssh
+# and install a pubkey
+cat << EOE > /mnt/sysimage/root/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDTRxypN4BeG6XdQPlr72SnNM18MHpM1rXqQNo3GwxVTZA7LXXCmTstWUPctUrk92uRkAOP335OoKN+njX4De022V+jlpPG9rHuDT93KOBTK8vmWwAOSBlvAe/5ebmhKoxuPEMe2M2FximeE99Uqk3uVLSJHDVjM1Q3g0onPx9HW3vzptP+7N9E9WzsaKrhE5Ns0NMgqLEdMiFj2x3OuDySoCS84nCQFC9Q966Ov8CBugX6/4R2yytNzjJ2UJ+mwvesEPZSH7kzQrTVPklyKhdG/i1OeMN0z38/QmGkLiJd174/yUy9TQBQ4NQSdSAffKNe0UZXpLTXUxPuGkcR4vH69wamWyQZMgRUvmVD/UygHMJQfxXMs03Xo4M6FdC7ejFVUxs7wHptSweKdDvI6OIPKHgZcrNuPXjIohXrCUPrx/tHPvZjmBz3gH4eb2z0zoTrGwHTIMXb8ahStRCfTBnbJvfEn+vn3sXHlb6IBtyMJY9kQ8E0YNsLkIVky+aXk/wXWFHKi6yCG62pCCX0+kCzDyTFzd2AS/jom+3NzL1eAhK7chQuaxdAPqJIH8gEfud9tLzZ85lJ0ZkChoAyNitVYkAKRR1ueAKXzPOg2Gt2LOtht2Tqr+MNBXlepfkE+TaltlygtpKLtsDo17TfuMhdfWJgLd6S705G91FOh3893Q== cardno:000500003E35
+EOE
+chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
 
 # https://fedoraproject.org/wiki/Using_UEFI_with_QEMU
 curl https://www.kraxel.org/repos/firmware.repo -o /mnt/sysimage/etc/yum.repos.d/firmware.repo
