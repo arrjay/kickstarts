@@ -148,6 +148,7 @@ dmidecode
 libvirt
 qemu-kvm
 virt-install
+kernel-devel
 
 nut
 
