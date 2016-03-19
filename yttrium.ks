@@ -203,15 +203,13 @@ grep -v /boot /mnt/sysimage/etc/fstab > /tmp/fstab.1
 printf '/dev/md/boot /boot ext4 defaults 1 2\n' >> /tmp/fstab.1
 printf '/dev/md/boot_efi /boot/efi hfsplus defaults 0 2\n' >> /tmp/fstab.1
 cp /tmp/fstab.1 /mnt/sysimage/etc/fstab
-printf 'add_drivers+="pl2303 "\n' >> /mnt/sysimage/etc/dracut.conf
-chroot /mnt/sysimage semanage fcontext -a -t tty_device_t /dev/ttyUSB0
 for kver in $(chroot /mnt/sysimage rpm -q kernel --qf '%{version}-%{release}.%{arch}') ; do
 chroot /mnt/sysimage dracut -f --kver ${kver}
 done
 
 # mangle the grub config...
 printf 'GRUB_DISABLE_OS_PROBER="true"\n' >> /mnt/sysimage/etc/default/grub
-sed -i -e 's/rhgb/console=ttyUSB0,115200n8/' $(readlink -f /mnt/sysimage/etc/default/grub)
+sed -i -e 's/rhgb//' $(readlink -f /mnt/sysimage/etc/default/grub)
 chroot /mnt/sysimage grub2-mkconfig > /mnt/sysimage/etc/grub2-efi.cfg
 
 # turn dhcp off on br1
