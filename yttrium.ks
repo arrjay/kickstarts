@@ -106,7 +106,7 @@ bootvol=${efidisk:0:3}
 
 # write boot(_efi) out in a template, because we're not entirely sure what device we got.
 rm /tmp/r1-include
-printf 'bootloader --append="video=efifb:off intel_iommu=on pci-stub.ids=1002:68b8,1033:0194" --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
+printf 'bootloader --append="intel_iommu=on pci-stub.ids=1033:0194" --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
 printf 'part /boot/efi --fstype=macefi --onpart="%s"\n' $efidisk >> /tmp/r1-include
 printf 'part /boot --fstype=ext4 --onpart="%s"\n' $bootdisk >> /tmp/r1-include
 
@@ -115,7 +115,6 @@ mdadm --detail --scan > /tmp/md-scratch
 %end
 
 # System bootloader configuration
-bootloader --location=mbr --boot-drive=sda
 # okay, assemble the RAID-y bits
 %include /tmp/r1-include
 raid pv.1248 --device=system --fstype="lvmpv" --useexisting
@@ -171,14 +170,9 @@ pwpolicy luks --minlen=0 --minquality=1 --notstrict --nochanges --emptyok
 echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /mnt/sysimage/etc/modprobe.d/vfio_iommu_type1.conf
 
 # vfio-pci notes
-# 8086:3a3e - audio controller
-# 1002:68b8 - video card
-# 1002:aa58 - video hdmi audio
 # 1033:0194 - USB3 controller
 echo "softdep vfio-pci post: vfio_iommu_type1" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
-echo "softdep radeon pre: vfio-pci" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
-echo "softdep snd_hda_intel pre: vfio-pci" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
-echo "options vfio-pci ids=8086:3a3e,1002:68b8,1002:aa58,1033:0194" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
+echo "options vfio-pci ids=1033:0194" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
 printf 'add_drivers+="vfio-pci "\n' >> /mnt/sysimage/etc/dracut.conf
 printf 'cgroup_device_acl = [ "/dev/null", "/dev/full", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/ptmx", "/dev/kvm", "/dev/kqemu", "/dev/rtc","/dev/hpet", "/dev/vfio/vfio", "/dev/vfio/22", "/dev/vfio/14" ]\n" >> /etc/libvirt/qemu.conf
 
