@@ -172,9 +172,9 @@ echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /mnt/sysimage/etc/mo
 # vfio-pci notes
 # 1033:0194 - USB3 controller
 echo "softdep vfio-pci post: vfio_iommu_type1" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
-echo "options vfio-pci ids=1033:0194" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
+echo "options vfio-pci ids=1033:0194" >> /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
 printf 'add_drivers+="vfio-pci "\n' >> /mnt/sysimage/etc/dracut.conf
-printf 'cgroup_device_acl = [ "/dev/null", "/dev/full", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/ptmx", "/dev/kvm", "/dev/kqemu", "/dev/rtc","/dev/hpet", "/dev/vfio/vfio", "/dev/vfio/22", "/dev/vfio/14" ]\n" >> /etc/libvirt/qemu.conf
+printf 'cgroup_device_acl = [ "/dev/null", "/dev/full", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/ptmx", "/dev/kvm", "/dev/kqemu", "/dev/rtc","/dev/hpet", "/dev/vfio/vfio", "/dev/vfio/22", "/dev/vfio/14" ]\n' >> /etc/libvirt/qemu.conf
 
 
 # put boot(_efi) back together
