@@ -153,6 +153,8 @@ nut
 
 augeas
 
+dnf-plugin-system-upgrade
+
 %end
 
 %addon com_redhat_kdump --disable --reserve-mb='128'
@@ -166,6 +168,7 @@ pwpolicy luks --minlen=0 --minquality=1 --notstrict --nochanges --emptyok
 %end
 
 %post --nochroot	# NOTE: needed because we snarf the md config written in %pre
+fver=$(. /etc/os-release ;echo $VERSION_ID)
 # allow unsafe pci interrupt setup for pci-e passthrough
 echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /mnt/sysimage/etc/modprobe.d/vfio_iommu_type1.conf
 
@@ -225,6 +228,10 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3OueMyB4NBGlHBdgN3BjVcq+eTQ3zhjMFUE1Kmn8g
 EOE
 chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
 
+# http://www.contrib.andrew.cmu.edu/~somlo/OSXKVM
+curl https://copr.fedorainfracloud.org/coprs/arrjay/applesmc-osk/repo/fedora-$fver/arrjay-applesmc-osk-fedora-$fver.repo -o /mnt/sysimage/etc/yum.repos.d/applesmc-osk.repo
+chroot /mnt/sysimage yum -y install applesmc-osk
+
 # https://fedoraproject.org/wiki/Using_UEFI_with_QEMU
 curl https://www.kraxel.org/repos/firmware.repo -o /mnt/sysimage/etc/yum.repos.d/firmware.repo
 chroot /mnt/sysimage yum -y install edk2.git-ovmf-x64
@@ -266,3 +273,9 @@ while true ; do
 done
 
 %end
+
+# now, we upgrade to f23 after this, because the f23 install kernel
+# has issues with SW RAID on this machine (cpu soft locks)
+# dnf update --refresh
+# dnf system-upgrade download --releasever=23
+# dnf system-upgrade reboot
