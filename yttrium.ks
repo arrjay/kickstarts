@@ -106,12 +106,7 @@ bootvol=${efidisk:0:3}
 
 # write boot(_efi) out in a template, because we're not entirely sure what device we got.
 rm /tmp/r1-include
-# pci-stub notes
-# 8086:3a3e - audio controller
-# 1002:68b8 - video card
-# 1002:aa58 - video hdmi audio
-# 1b73:1100 - USB3 controller
-printf 'bootloader --append="intel_iommu=on pci-stub.ids=8086:3a3e,1002:68b8,1002:aa58,1b73:1100" --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
+printf 'bootloader --append="video=efifb:off intel_iommu=on pci-stub.ids=1002:68b8,1033:0194" --location=mbr --boot-drive=%s\n' $bootvol >> /tmp/r1-include
 printf 'part /boot/efi --fstype=macefi --onpart="%s"\n' $efidisk >> /tmp/r1-include
 printf 'part /boot --fstype=ext4 --onpart="%s"\n' $bootdisk >> /tmp/r1-include
 
@@ -172,6 +167,22 @@ pwpolicy luks --minlen=0 --minquality=1 --notstrict --nochanges --emptyok
 %end
 
 %post --nochroot	# NOTE: needed because we snarf the md config written in %pre
+# allow unsafe pci interrupt setup for pci-e passthrough
+echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /mnt/sysimage/etc/modprobe.d/vfio_iommu_type1.conf
+
+# vfio-pci notes
+# 8086:3a3e - audio controller
+# 1002:68b8 - video card
+# 1002:aa58 - video hdmi audio
+# 1033:0194 - USB3 controller
+echo "softdep vfio-pci post: vfio_iommu_type1" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
+echo "softdep radeon pre: vfio-pci" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
+echo "softdep snd_hda_intel pre: vfio-pci" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
+echo "options vfio-pci ids=8086:3a3e,1002:68b8,1002:aa58,1033:0194" > /mnt/sysimage/etc/modprobe.d/vfio-pci.conf
+printf 'add_drivers+="vfio-pci "\n' >> /mnt/sysimage/etc/dracut.conf
+printf 'cgroup_device_acl = [ "/dev/null", "/dev/full", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/ptmx", "/dev/kvm", "/dev/kqemu", "/dev/rtc","/dev/hpet", "/dev/vfio/vfio", "/dev/vfio/22", "/dev/vfio/14" ]\n" >> /etc/libvirt/qemu.conf
+
+
 # put boot(_efi) back together
 mdadm --assemble boot -c /tmp/md-scratch
 mdadm --assemble boot_efi -c /tmp/md-scratch
@@ -198,7 +209,7 @@ grep -v /boot /mnt/sysimage/etc/fstab > /tmp/fstab.1
 printf '/dev/md/boot /boot ext4 defaults 1 2\n' >> /tmp/fstab.1
 printf '/dev/md/boot_efi /boot/efi hfsplus defaults 0 2\n' >> /tmp/fstab.1
 cp /tmp/fstab.1 /mnt/sysimage/etc/fstab
-printf 'add_drivers+=pl2303\n' >> /mnt/sysimage/etc/dracut.conf
+printf 'add_drivers+="pl2303 "\n' >> /mnt/sysimage/etc/dracut.conf
 chroot /mnt/sysimage semanage fcontext -a -t tty_device_t /dev/ttyUSB0
 for kver in $(chroot /mnt/sysimage rpm -q kernel --qf '%{version}-%{release}.%{arch}') ; do
 chroot /mnt/sysimage dracut -f --kver ${kver}
@@ -218,6 +229,7 @@ mkdir /mnt/sysimage/root/.ssh
 # and install a pubkey
 cat << EOE > /mnt/sysimage/root/.ssh/authorized_keys
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDTRxypN4BeG6XdQPlr72SnNM18MHpM1rXqQNo3GwxVTZA7LXXCmTstWUPctUrk92uRkAOP335OoKN+njX4De022V+jlpPG9rHuDT93KOBTK8vmWwAOSBlvAe/5ebmhKoxuPEMe2M2FximeE99Uqk3uVLSJHDVjM1Q3g0onPx9HW3vzptP+7N9E9WzsaKrhE5Ns0NMgqLEdMiFj2x3OuDySoCS84nCQFC9Q966Ov8CBugX6/4R2yytNzjJ2UJ+mwvesEPZSH7kzQrTVPklyKhdG/i1OeMN0z38/QmGkLiJd174/yUy9TQBQ4NQSdSAffKNe0UZXpLTXUxPuGkcR4vH69wamWyQZMgRUvmVD/UygHMJQfxXMs03Xo4M6FdC7ejFVUxs7wHptSweKdDvI6OIPKHgZcrNuPXjIohXrCUPrx/tHPvZjmBz3gH4eb2z0zoTrGwHTIMXb8ahStRCfTBnbJvfEn+vn3sXHlb6IBtyMJY9kQ8E0YNsLkIVky+aXk/wXWFHKi6yCG62pCCX0+kCzDyTFzd2AS/jom+3NzL1eAhK7chQuaxdAPqJIH8gEfud9tLzZ85lJ0ZkChoAyNitVYkAKRR1ueAKXzPOg2Gt2LOtht2Tqr+MNBXlepfkE+TaltlygtpKLtsDo17TfuMhdfWJgLd6S705G91FOh3893Q== cardno:000500003E35
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3OueMyB4NBGlHBdgN3BjVcq+eTQ3zhjMFUE1Kmn8gPupqwrQdZavSAkzsvuFl9XD2rvaoJxc/WGpsBd9zfkGLt2MrrvKzaGhBs2uOoZoT1/TTrWdv4F3FrEYO6+F49n0tKFX6OHR711H/0AmqLE1pNh37rqDIV9y4QUCpa/dg51KbCcDhtq9mKvRmoVLUYkRNPGgcWK1CTGT3uQ5IZwQSR2Ia5kr+5cYXTlNnRMk+P8ecUET4fpmqrNd8fFQGldFWTr5xJTDn80yfMi1CbvsWHmk5JxbxOzJga1AQeWspzPgz1rPwOMoYOArS6i4WxsHCOeuUQtF1gViAABiCM/D7 cardno:000603634564
 EOE
 chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
 
