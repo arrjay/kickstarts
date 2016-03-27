@@ -2,7 +2,7 @@
 set -x
 
 TARGET=/dev/sdb
-KSFILE=yttrium.ks
+KSFILE=shadowbox.ks
 
 echo 'partition table wrangling'
 cat sfdisk.script | sudo sfdisk ${TARGET}
@@ -19,19 +19,19 @@ echo 'installing syslinux'
 sudo syslinux ${TARGET}1
 
 echo 'retrieving kernel'
-curl -L -o vmlinuz http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os/images/pxeboot/vmlinuz
+curl -L -o vmlinuz http://mirrors.kernel.org/fedora/releases/23/Server/x86_64/os/images/pxeboot/vmlinuz
 
 echo 'retrieving initrd'
-curl -L -o initrd.img http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os/images/pxeboot/initrd.img
+curl -L -o initrd.img http://mirrors.kernel.org/fedora/releases/23/Server/x86_64/os/images/pxeboot/initrd.img
 
 echo 'retrieving stage2'
-curl -L -o squashfs.img http://mirrors.kernel.org/fedora/releases/22/Workstation/x86_64/os/LiveOS/squashfs.img
+curl -L -o squashfs.img http://mirrors.kernel.org/fedora/releases/23/Workstation/x86_64/os/images/install.img
 
 echo 'retrieving EFI kit'
-curl -L -o unicode.pf2 http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os/EFI/BOOT/fonts/unicode.pf2
-curl -L -o grubx64.efi http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os/EFI/BOOT/grubx64.efi
-curl -L -o MokManager.efi http://mirrors.kernel.org/fedora/releases/22/Server/x86_64/os/EFI/BOOT/MokManager.efi
-curl -L -o BOOTX64.EFI http://mirrors.kernel.org/fedora/releases/22/Workstation/x86_64/os/EFI/BOOT/BOOTX64.EFI
+curl -L -o unicode.pf2 http://mirrors.kernel.org/fedora/releases/23/Server/x86_64/os/EFI/BOOT/fonts/unicode.pf2
+curl -L -o grubx64.efi http://mirrors.kernel.org/fedora/releases/23/Server/x86_64/os/EFI/BOOT/grubx64.efi
+curl -L -o MokManager.efi http://mirrors.kernel.org/fedora/releases/23/Server/x86_64/os/EFI/BOOT/MokManager.efi
+curl -L -o BOOTX64.EFI http://mirrors.kernel.org/fedora/releases/23/Workstation/x86_64/os/EFI/BOOT/BOOTX64.EFI
 
 echo 'copying EFI imagery'
 sudo env MTOOLS_SKIP_CHECK=1 mmd -i ${TARGET}1 EFI
