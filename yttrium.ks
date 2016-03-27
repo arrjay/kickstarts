@@ -150,6 +150,8 @@ qemu-kvm
 virt-install
 kernel-devel
 
+xauth
+
 nut
 
 augeas
