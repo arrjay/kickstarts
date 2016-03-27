@@ -75,6 +75,8 @@ augeas
 
 dnf-plugin-system-upgrade
 
+bluez
+
 %end
 
 %addon com_redhat_kdump --disable --reserve-mb='128'
@@ -100,6 +102,7 @@ echo "softdep vfio-pci post: vfio_iommu_type1" > /etc/modprobe.d/vfio-pci.conf
 echo "options vfio-pci ids=1002:6738,1002:aa88,1b73:1100,1b4b:9230" >> /etc/modprobe.d/vfio-pci.conf
 echo "softdep radeon pre: vfio-pci" >> /etc/modprobe.d/vfio-pci.conf
 echo "softdep snd_hda_intel pre: vfio-pci" >> /etc/modprobe.d/vfio-pci.conf
+printf 'install vfio-pci /sbin/modprobe --ignore-install vfio-pci ; /bin/bash -c '\''read c < /proc/cmdline;for a in $c;do case $a in pci-stub.ids=*)i="${a//pci-stub.ids=}";;esac;done;for p in /sys/bus/pci/devices/*;do read v < $p/vendor;v="${v//0x}";read d < $p/device;d="${d//0x}";case $i in *${v}:${d}*)n=${p:21};echo $n > ${p}/driver/unbind;echo $n > /sys/bus/pci/drivers/vfio-pci/bind;;esac;done'\''\n' >> /etc/modprobe.d/vfio-pci.conf
 printf 'add_drivers+="vfio-pci "\n' >> /etc/dracut.conf
 printf 'cgroup_device_acl = [ "/dev/null", "/dev/full", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/ptmx", "/dev/kvm", "/dev/kqemu", "/dev/rtc","/dev/hpet", "/dev/vfio/vfio", "/dev/vfio/22", "/dev/vfio/14" ]\n' >> /etc/libvirt/qemu.conf
 
