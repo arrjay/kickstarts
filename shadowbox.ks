@@ -37,7 +37,7 @@ clearpart --all --initlabel --drives=sda
 # Disk partitioning information
 part /boot --fstype="ext4" --ondisk=sda --size=500
 part /boot/efi --fstype="efi" --ondisk=sda --size=200 --fsoptions="umask=0077,shortname=winnt"
-part pv.303 --fstype="lvmpv" --ondisk=sda --size=75618
+part pv.303 --fstype="lvmpv" --ondisk=sda --size=75618 --grow
 volgroup fedora_shadowbox --pesize=4096 pv.303
 logvol swap  --fstype="swap" --size=8192 --name=swap --vgname=fedora_shadowbox
 logvol /  --fstype="xfs" --size=18432 --name=root --vgname=fedora_shadowbox
