@@ -41,6 +41,7 @@ part pv.303 --fstype="lvmpv" --ondisk=sda --size=75618
 volgroup fedora_shadowbox --pesize=4096 pv.303
 logvol swap  --fstype="swap" --size=8192 --name=swap --vgname=fedora_shadowbox
 logvol /  --fstype="xfs" --size=18432 --name=root --vgname=fedora_shadowbox
+logvol /var/lib/libvirt  --fstype="xfs" --size=8192 --name=var_lib_libvirt --vgname=fedora_shadowbox
 
 # System services
 services --enabled="chronyd"
@@ -53,6 +54,7 @@ policycoreutils-python
 
 avahi
 
+htop
 screen
 dstat
 smartmontools
@@ -76,6 +78,9 @@ augeas
 dnf-plugin-system-upgrade
 
 bluez
+
+git
+mdadm
 
 %end
 
@@ -129,5 +134,9 @@ chmod 0600 /root/.ssh/authorized_keys
 curl https://www.kraxel.org/repos/firmware.repo -o /etc/yum.repos.d/firmware.repo
 yum -y install edk2.git-ovmf-x64
 printf 'nvram = [\n\t"/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd:/usr/share/edk2.git/ovmf-x64/OVMF_VARS-pure-efi.fd",\n]\n' >> /etc/libvirt/qemu.conf
+
+# https://fedoraproject.org/wiki/Windows_Virtio_Drivers
+curl https://fedorapeople.org/groups/virt/virtio-win/virtio-win.repo -o /etc/yum.repos.d/virtio-win.repo
+yum -y install virtio-win
 
 %end
