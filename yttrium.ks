@@ -220,7 +220,47 @@ sed -i -e 's/rhgb//' $(readlink -f /mnt/sysimage/etc/default/grub)
 chroot /mnt/sysimage grub2-mkconfig > /mnt/sysimage/etc/grub2-efi.cfg
 
 # turn dhcp off on br1
-sed -i -e 's/BOOTPROTO=dhcp/BOOTPROTO=none/' /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
+sed -i -e 's/BOOTPROTO=dhcp//' /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
+printf 'BRIDGING_OPTS=ageing_time=5\n' >> /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
+
+# create 'home' bridge
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_home
+DEVICE=home
+STP=no
+TYPE=Bridge
+BOOTPROTO=none
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+NAME="Bridge connection home"
+ONBOOT=yes
+IPADDR=172.16.128.57
+PREFIX=32
+GATEWAY=172.16.128.254
+DNS1=172.16.128.30
+DNS2=172.16.128.36
+DOMAIN=produxi.net
+EOI
+
+# rebind the VLAN interface to it.
+enphw=$(ip addr show enp9s0.5|grep ether|awk '{print $2}')
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-enp9s0.5
+PHYSDEV=enp9s0
+BRIDGE=home
+NAME="VLAN connection enp9s0.5"
+VLAN=yes
+DEVICE=enp9s0.5
+TYPE=Vlan
+HWADDR=${enphw}
+ONBOOT=yes
+VLAN_ID=5
+REORDER_HDR=0
+EOI
 
 # disable passwords for ssh
 chroot /mnt/sysimage augtool set /files/etc/ssh/sshd_config/PermitRootLogin without-password
@@ -277,6 +317,7 @@ while true ; do
 done
 
 %end
+
 
 # now, we upgrade to f23 after this, because the f23 install kernel
 # has issues with SW RAID on this machine (cpu soft locks)
