@@ -22,7 +22,8 @@ reboot
 
 # Network information
 network  --bootproto=dhcp --device=br1 --bridgeslaves=enp10s0 --bridgeopts=ageing-time=15,stp=no --onboot=on --noipv4 --noipv6
-network  --bootproto=static --device=br0 --bridgeslaves=enp9s0 --ip=172.16.128.57 --gateway=172.16.128.254 --netmask=255.255.255.0 --nameserver=172.16.128.36 --nameserver=172.16.128.30 --ipv6=auto --activate --bridgeopts=ageing-time=15,stp=no --hostname=yttrium.produxi.net
+network  --bootproto=dhcp --device=enp9s0 --onboot=off --ipv6=auto --noipv4 --noipv6
+network  --bootproto=static --device=enp9s0 --vlanid=5 --ip=172.16.128.57 --gateway=172.16.128.254 --netmask=255.255.255.0 --nameserver=172.16.128.36 --nameserver=172.16.128.30 --ipv6=auto --activate --hostname=yttrium.produxi.net
 
 # Root password
 rootpw --iscrypted $6$m95xGSDD7uy.OlhR$1fkOb4IJhARxPZtuc7Mx85tHBY0nf9eEmEE7Zw4Xweh1M4n5kUZ/Ny7xPACUHHfbKNz3dFoxbOurCWpD89YPs.
