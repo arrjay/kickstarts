@@ -262,6 +262,97 @@ VLAN_ID=5
 REORDER_HDR=0
 EOI
 
+# make some other vlans...
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-enp9s0.4
+PHYSDEV=enp9s0
+BRIDGE=admin
+NAME="VLAN connection enp9s0.4"
+VLAN=yes
+DEVICE=enp9s0.4
+TYPE=Vlan
+HWADDR=${enphw}
+ONBOOT=yes
+VLAN_ID=4
+REORDER_HDR=0
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_admin
+DEVICE=admin
+STP=no
+TYPE=Bridge
+BOOTPROTO=none
+DEFROUTE=no
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+NAME="Bridge connection admin"
+ONBOOT=yes
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-enp9s0.6
+PHYSDEV=enp9s0
+BRIDGE=chaos
+NAME="VLAN connection enp9s0.6"
+VLAN=yes
+DEVICE=enp9s0.6
+TYPE=Vlan
+HWADDR=${enphw}
+ONBOOT=yes
+VLAN_ID=6
+REORDER_HDR=0
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_chaos
+DEVICE=chaos
+STP=no
+TYPE=Bridge
+BOOTPROTO=none
+DEFROUTE=no
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+NAME="Bridge connection chaos"
+ONBOOT=yes
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-enp9s0.7
+PHYSDEV=enp9s0
+BRIDGE=guest
+NAME="VLAN connection enp9s0.7"
+VLAN=yes
+DEVICE=enp9s0.7
+TYPE=Vlan
+HWADDR=${enphw}
+ONBOOT=yes
+VLAN_ID=7
+REORDER_HDR=0
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_guest
+DEVICE=guest
+STP=no
+TYPE=Bridge
+BOOTPROTO=none
+DEFROUTE=no
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+NAME="Bridge connection guest"
+ONBOOT=yes
+EOI
+
 # disable passwords for ssh
 chroot /mnt/sysimage augtool set /files/etc/ssh/sshd_config/PermitRootLogin without-password
 mkdir /mnt/sysimage/root/.ssh
