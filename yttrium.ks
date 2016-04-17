@@ -224,7 +224,18 @@ sed -i -e 's/BOOTPROTO=dhcp//' /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg
 printf 'BRIDGING_OPTS=ageing_time=5\n' >> /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
 
 # turn off ipv6 on br1
-printf '# axe ipv6 on the internet-carrying bridges, cable modem hates it\nnet.ipv6.conf.br1.disable_ipv6=1\n' > /mnt/sysimage/etc/sysctl.d/zz-ipv6-disable.conf
+cat << EOD > /mnt/sysimage/etc/NetworkManager/dispatcher.d/00-axe-ipv6.sh
+#!/bin/bash
+
+case "\${1}" in
+  br1)
+    sysctl "net.ipv6.conf.\${1}.disable_ipv6"=1
+    ;;
+esac
+EOD
+( cd /mnt/sysimage/etc/NetworkManager/dispatcher.d/pre-up.d && ln -s ../00-axe-ipv6.sh )
+chmod 0755 /mnt/sysimage/etc/NetworkManager/dispatcher.d/00-axe-ipv6.sh
+chown root:root /mnt/sysimage/etc/NetworkManager/dispatcher.d/00-axe-ipv6.sh
 
 # create 'home' bridge
 cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_home
