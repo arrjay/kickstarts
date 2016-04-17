@@ -149,6 +149,7 @@ dmidecode
 libvirt
 qemu-kvm
 virt-install
+libguestfs-tools
 kernel-devel
 
 xauth
@@ -364,6 +365,36 @@ IPV6_PEERDNS=no
 IPV6_PEERROUTES=no
 IPV6_FAILURE_FATAL=no
 NAME="Bridge connection guest"
+ONBOOT=yes
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-enp9s0.8
+PHYSDEV=enp9s0
+BRIDGE=transit
+NAME="VLAN connection enp9s0.8"
+VLAN=yes
+DEVICE=enp9s0.8
+TYPE=Vlan
+HWADDR=${enphw}
+ONBOOT=yes
+VLAN_ID=8
+REORDER_HDR=0
+EOI
+
+cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_transit
+DEVICE=transit
+STP=no
+TYPE=Bridge
+BOOTPROTO=none
+DEFROUTE=no
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+NAME="Bridge connection transit"
 ONBOOT=yes
 EOI
 
