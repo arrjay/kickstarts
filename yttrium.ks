@@ -223,6 +223,9 @@ chroot /mnt/sysimage grub2-mkconfig > /mnt/sysimage/etc/grub2-efi.cfg
 sed -i -e 's/BOOTPROTO=dhcp//' /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
 printf 'BRIDGING_OPTS=ageing_time=5\n' >> /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-br1
 
+# turn off ipv6 on br1
+printf '# axe ipv6 on the internet-carrying bridges, cable modem hates it\nnet.ipv6.conf.br1.disable_ipv6=1\n' > /mnt/sysimage/etc/sysctl.d/zz-ipv6-disable.conf
+
 # create 'home' bridge
 cat << EOI > /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-Bridge_connection_home
 DEVICE=home
