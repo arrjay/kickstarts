@@ -140,6 +140,7 @@ avahi
 screen
 dstat
 smartmontools
+htop
 
 lsscsi
 pciutils
