@@ -50,7 +50,7 @@ DZ = $(shell echo $$(( $(IZ) + 1024 )))
 	$(MAKE) -C $(@D) all
 
 # make a disk (partition) image - requires DEVICE, OS vars
-image: images/efikit/.all images/$(OS)/.all
+image: images/efikit/.all images/$(OS)/.all syslinux.cfg
 ifeq ("$(findstring @,$(DEVICE)$(RDSK))","")
 	# raw image file case
 	$(MAKE) sparsefile SIZE=$(IZ)
