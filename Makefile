@@ -16,12 +16,16 @@ PARTED = parted
 # dd (for stapling in syslinux)
 DD = dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=$(DEVICE)
 
+# syslinux
+SYSLINUX = syslinux $(DEVICE)
+
 # override MMD and MCOPY if this is a real device
 RDSK =
 # this 1) gets replaced by DEVICE when called directly, 2) gets replaced if a real disk
 IDEVICE = $(DEVICE)@@1M
 # FIIK why patsubst doesn't work here.
 GFISH_DEV = $(shell echo $(DEVICE)|sed 's/@@.*//g')
+ISYSLINUX = syslinux $(GFISH_DEV) --offset=1048576
 ifneq ("$(wildcard $(DEVICE))","")
 ifneq ("$(shell stat --printf %t $(DEVICE))","0")
 RDSK := @
@@ -30,6 +34,7 @@ MCOPY := sudo $(MCOPY)
 MKFS := sudo $(MKFS)
 PARTED := sudo $(PARTED)
 IDEVICE = $(DEVICE)1
+SYSLINUX := sudo $(SYSLINUX)
 DD := sudo $(DD)
 endif
 endif
@@ -50,13 +55,17 @@ ifeq ("$(findstring @,$(DEVICE)$(RDSK))","")
 	# raw image file case
 	$(MAKE) sparsefile SIZE=$(IZ)
 	$(MKFS)
-endif
+	$(SYSLINUX)
+else
 ifneq ("$(findstring @,$(RDSK))","")
 	# oh. a real disk device.
 	$(MKFS)
+	$(SYSLINUX)
 else
 	# we were handed a file + offset - try having guestfish format it.
 	guestfish -a $(GFISH_DEV) run : mkfs vfat /dev/sda1
+	$(ISYSLINUX)
+endif
 endif
 	# we have a device or an offset at this point, hopefully with an FS
 
