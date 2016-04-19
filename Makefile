@@ -71,6 +71,15 @@ sizing:
 %.all: %/Makefile
 	$(MAKE) -C $(@D) all
 
+# create a fat32 filesystem - requires DEVICE
+mkfs: Makefile
+ifeq ("$(findstring @,$(DEVICE)$(RDSK))","")
+	$(MKFS)
+else
+	# we were handed a file + offset - try having guestfish format it.
+	guestfish -a $(GFISH_DEV) run : mkfs vfat /dev/sda1
+endif
+
 # copy the efikit to a pre-formatted image - requires DEVICE
 efikit: images/efikit/.all grub.cfg
 	$(MMD) EFI
@@ -88,16 +97,14 @@ image: images/$(OS)/.all syslinux.cfg
 ifeq ("$(findstring @,$(DEVICE)$(RDSK))","")
 	# raw image file case
 	$(MAKE) sparsefile SIZE=$(IZ)
-	$(MKFS)
+	$(MAKE) mkfs DEVICE=$(DEVICE)
 	$(SYSLINUX)
 else
+	$(MAKE) mkfs DEVICE=$(DEVICE)
 ifneq ("$(findstring @,$(RDSK))","")
 	# oh. a real disk device.
-	$(MKFS)
 	$(SYSLINUX)
 else
-	# we were handed a file + offset - try having guestfish format it.
-	guestfish -a $(GFISH_DEV) run : mkfs vfat /dev/sda1
 	$(ISYSLINUX)
 endif
 endif
@@ -136,5 +143,10 @@ sparsefile: Makefile
 	# remove and recreate a sparse file of computed size
 	-rm $(DEVICE)
 	truncate -s $(SIZE)k $(DEVICE)
+
+# make an iso! use the tmpdir now. - requires DEVICE, OS vars
+iso: Makefile $(tmpdir)
+	mkdir -p $(tmpdir)/images
+	$(MAKE) sparsefile SIZE=$(EZ) DEVICE=$(tmpdir)/images/efiboot.img
 
 endif	# tmpdir switch
