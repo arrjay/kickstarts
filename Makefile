@@ -62,12 +62,9 @@ DZ = $(shell echo $$(( $(IZ) + 1024 )))
 # disk size calculation for just-EFI image
 EZ = $(shell echo $$(( $$(du -ks --total images/efikit|tail -n1|cut - -f1) + $(OVERHEAD) )))
 
-# just report image sizes
-sizing:
-	echo $(SZ)
-	echo $(IZ)
-	echo $(DZ)
-	echo $(EZ)
+# just report image sizes - requires OS
+sizing: images/efikit/.all images/$(OS)/.all
+	@printf files:\\t%s\\nimage:\\t%s\\ndisk:\\t%s\\nefi:\\t%s\\n $(SZ) $(IZ) $(DZ) $(EZ)
 
 # subdir expansion rule
 %.all: %/Makefile
