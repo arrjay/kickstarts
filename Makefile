@@ -71,7 +71,7 @@ efikit: images/efikit/.all grub.cfg
 	$(MCOPY) grub.cfg ::EFI/BOOT
 
 # make a disk (partition) image - requires DEVICE, OS vars
-image: images/efikit/.all images/$(OS)/.all syslinux.cfg
+image: images/$(OS)/.all syslinux.cfg
 ifeq ("$(findstring @,$(DEVICE)$(RDSK))","")
 	# raw image file case
 	$(MAKE) sparsefile SIZE=$(IZ)
