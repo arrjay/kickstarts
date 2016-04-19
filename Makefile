@@ -146,9 +146,23 @@ sparsefile: Makefile
 	truncate -s $(SIZE)k $(DEVICE)
 
 # make an iso! use the tmpdir now. - requires DEVICE, OS vars
-iso: Makefile $(tmpdir)
-	mkdir -p $(tmpdir)/images
+iso: Makefile $(tmpdir) images/efikit/.all grub.cfg
+	mkdir -p $(tmpdir)/images/pxeboot
 	$(MAKE) sparsefile SIZE=$(EZ) DEVICE=$(tmpdir)/images/efiboot.img
 	$(MAKE) mkfs DEVICE=$(tmpdir)/images/efiboot.img FAT=12
+	$(MAKE) efikit DEVICE=$(tmpdir)/images/efiboot.img
+	# copy efikit *again* to tmpdir
+	mkdir -p $(tmpdir)/EFI/BOOT/fonts
+	cp images/efikit/unicode.pf2 $(tmpdir)/EFI/BOOT/fonts/
+	cp images/efikit/BOOTX64.EFI $(tmpdir)/EFI/BOOT/
+	cp images/efikit/MokManager.efi $(tmpdir)/EFI/BOOT/
+	cp images/efikit/grubx64.efi $(tmpdir)/EFI/BOOT/
+	cp grub.cfg $(tmpdir)/EFI/BOOT
+	cp images/$(OS)/vmlinuz $(tmpdir)/images/pxeboot/
+	cp images/$(OS)/initrd.img $(tmpdir)/images/pxeboot/
+	cp images/$(OS)/stage2.img $(tmpdir)/
+	mkdir -p $(tmpdir)/isolinux
+	cd $(tmpdir)/isolinux ; ln ../images/pxeboot/initrd.img
+	cd $(tmpdir)/isolinux ; ln ../images/pxeboot/vmlinuz
 
 endif	# tmpdir switch
