@@ -92,8 +92,10 @@ endif
 	$(MAKE) efikit DEVICE=$(DEVICE)
 
 	# copy OS pieces
-	$(MCOPY) images/$(OS)/vmlinuz ::
-	$(MCOPY) images/$(OS)/initrd.img ::
+	$(MMD) images
+	$(MMD) images/pxeboot
+	$(MCOPY) images/$(OS)/vmlinuz ::images/pxeboot
+	$(MCOPY) images/$(OS)/initrd.img ::images/pxeboot
 	$(MCOPY) images/$(OS)/stage2.img ::
 
 	# syslinux (MBR) config
