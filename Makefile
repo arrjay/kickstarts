@@ -44,10 +44,31 @@ SZ = $(shell du -ks --total images/efikit images/$(OS)|tail -n1|cut - -f1)
 IZ = $(shell echo $$(( $(SZ) + $(OVERHEAD) )))
 # disk size calculation if we make a disk - add 1M to it for offsets
 DZ = $(shell echo $$(( $(IZ) + 1024 )))
+# disk size calculation for just-EFI image
+EZ = $(shell echo $$(( $$(du -ks --total images/efikit|tail -n1|cut - -f1) + $(OVERHEAD) )))
+
+# just report image sizes
+sizing:
+	echo $(SZ)
+	echo $(IZ)
+	echo $(DZ)
+	echo $(EZ)
 
 # subdir expansion rule
 %.all: %/Makefile
 	$(MAKE) -C $(@D) all
+
+# copy the efikit to a pre-formatted image - requires DEVICE
+efikit: images/efikit/.all grub.cfg
+	$(MMD) EFI
+	$(MMD) EFI/BOOT
+	$(MCOPY) images/efikit/grubx64.efi ::EFI/BOOT
+	$(MCOPY) images/efikit/MokManager.efi ::EFI/BOOT
+	$(MCOPY) images/efikit/BOOTX64.EFI ::EFI/BOOT
+	$(MMD) EFI/BOOT/fonts
+	$(MCOPY) images/efikit/unicode.pf2 ::EFI/BOOT/fonts
+	# grub (EFI) config
+	$(MCOPY) grub.cfg ::EFI/BOOT
 
 # make a disk (partition) image - requires DEVICE, OS vars
 image: images/efikit/.all images/$(OS)/.all syslinux.cfg
@@ -68,15 +89,7 @@ else
 endif
 endif
 	# we have a device or an offset at this point, hopefully with an FS
-
-	# make EFI dirs and copy kit
-	$(MMD) EFI
-	$(MMD) EFI/BOOT
-	$(MCOPY) images/efikit/grubx64.efi ::EFI/BOOT
-	$(MCOPY) images/efikit/MokManager.efi ::EFI/BOOT
-	$(MCOPY) images/efikit/BOOTX64.EFI ::EFI/BOOT
-	$(MMD) EFI/BOOT/fonts
-	$(MCOPY) images/efikit/unicode.pf2 ::EFI/BOOT/fonts
+	$(MAKE) efikit DEVICE=$(DEVICE)
 
 	# copy OS pieces
 	$(MCOPY) images/$(OS)/vmlinuz ::
@@ -85,9 +98,6 @@ endif
 
 	# syslinux (MBR) config
 	$(MCOPY) syslinux.cfg ::
-
-	# grub (EFI) config
-	$(MCOPY) grub.cfg ::EFI/BOOT
 
 # make a disk image and install mbr - requires DEVICE, OS vars
 # don't directly rely on image target because we reset device
