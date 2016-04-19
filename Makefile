@@ -165,5 +165,8 @@ iso: Makefile $(tmpdir) images/efikit/.all grub.cfg
 	mkdir -p $(tmpdir)/isolinux
 	cd $(tmpdir)/isolinux ; ln ../images/pxeboot/initrd.img
 	cd $(tmpdir)/isolinux ; ln ../images/pxeboot/vmlinuz
+	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux
+	cp syslinux.cfg $(tmpdir)/isolinux/isolinux.cfg
+	mkisofs -o $(DEVICE) -b isolinux/isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e images/efiboot.img -no-emul-boot $(tmpdir)
 
 endif	# tmpdir switch
