@@ -86,6 +86,9 @@ endif
 	# syslinux (MBR) config
 	$(MCOPY) syslinux.cfg ::
 
+	# grub (EFI) config
+	$(MCOPY) grub.cfg ::EFI/BOOT
+
 # make a disk image and install mbr - requires DEVICE, OS vars
 # don't directly rely on image target because we reset device
 disk: Makefile images/efikit/.all images/$(OS)/.all
