@@ -21,7 +21,8 @@ MMD = env MTOOLS_SKIP_CHECK=1 mmd -i $(DEVICE)
 MCOPY = env MTOOLS_SKIP_CHECK=1 mcopy -i $(DEVICE)
 
 # mkfs programs
-MKFS = mkdosfs -F32 -n 'KICKSTART' $(DEVICE)
+FAT=32
+MKFS = mkdosfs -F$(FAT) -n 'KICKSTART' $(DEVICE)
 
 # parted
 PARTED = parted
@@ -148,5 +149,6 @@ sparsefile: Makefile
 iso: Makefile $(tmpdir)
 	mkdir -p $(tmpdir)/images
 	$(MAKE) sparsefile SIZE=$(EZ) DEVICE=$(tmpdir)/images/efiboot.img
+	$(MAKE) mkfs DEVICE=$(tmpdir)/images/efiboot.img FAT=12
 
 endif	# tmpdir switch
