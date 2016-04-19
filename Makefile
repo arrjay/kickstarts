@@ -1,3 +1,16 @@
+# http://stackoverflow.com/questions/589252/how-can-i-automatically-create-and-remove-a-temp-directory-in-a-makefile
+
+ifeq ($(tmpdir),)
+
+location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+self := $(location)
+
+%:
+	@tmpdir=`mktemp --tmpdir -d` ; trap 'rm -rf "$$tmpdir"' EXIT ; \
+	$(MAKE) -f $(self) --no-print-directory tmpdir=$$tmpdir $@
+
+else
+
 # bootstrap images
 
 # add 2MB slack space to our images
@@ -123,3 +136,5 @@ sparsefile: Makefile
 	# remove and recreate a sparse file of computed size
 	-rm $(DEVICE)
 	truncate -s $(SIZE)k $(DEVICE)
+
+endif	# tmpdir switch
