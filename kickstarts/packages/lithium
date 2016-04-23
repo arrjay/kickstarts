@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "%packages"
+
+# grab OS common
+cat packages/${OS}.inc
+
+# grab real hardware
+./packages/hardware.inc
+
+# grab virtualization host
+./packages/virt.inc
+
+echo ""
+echo "%end"

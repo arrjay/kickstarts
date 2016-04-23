@@ -1,0 +1,25 @@
+# System bootloader configuration
+bootloader --location=mbr --boot-drive=sda
+# Partition clearing information
+clearpart --all --initlabel --drives=sda,sdb
+# Disk partitioning information
+part raid.1527 --fstype="mdmember" --ondisk=sda --size=200
+part raid.1534 --fstype="mdmember" --ondisk=sdb --size=200
+
+part raid.1812 --fstype="mdmember" --ondisk=sda --size=500
+part raid.1819 --fstype="mdmember" --ondisk=sdb --size=500
+
+part raid.1249 --fstype="mdmember" --ondisk=sda --size=24368 --grow
+part raid.1256 --fstype="mdmember" --ondisk=sdb --size=24368 --grow
+
+raid pv.1263 --device=pv00 --fstype="lvmpv" --level=RAID1 raid.1249 raid.1256
+
+raid /boot/efi --device=boot_efi --fstype="efi" --level=RAID1 --fsoptions="umask=0077,shortname=winnt" raid.1527 raid.1534
+
+raid /boot --device=boot --fstype="ext4" --level=RAID1 raid.1812 raid.1819
+
+volgroup fedora_lithium --pesize=4096 pv.1263
+
+logvol swap  --fstype="swap" --size=8192 --name=swap --vgname=fedora_lithium
+
+logvol /  --fstype="ext4" --size=36864 --name=root --vgname=fedora_lithium

@@ -1,0 +1,4 @@
+network  --bootproto=dhcp --device=enp4s0 --onboot=off --ipv6=auto --noipv4 --noipv6
+network  --bootproto=static --device=enp4s0 --vlanid=5 --ip=172.16.128.58 --gateway=172.16.128.254 --netmask=255.255.255.0 --nameserver=172.16.128.36 --nameserver=172.16.128.30 --ipv6=auto --activate
+network  --bootproto=dhcp --device=br1 --bridgeslaves=enp6s0 --bridgeopts=ageing-time=15,stp=no --onboot=on --noipv4 --noipv6
+network  --hostname=lithium.produxi.net
