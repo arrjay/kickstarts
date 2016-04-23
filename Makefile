@@ -43,6 +43,7 @@ GFISH_DEV = $(shell echo $(DEVICE)|sed 's/@@.*//g')
 ISYSLINUX = syslinux $(GFISH_DEV) --offset=1048576
 ifneq ("$(wildcard $(DEVICE))","")
 ifneq ("$(shell stat --printf %t $(DEVICE))","0")
+# configure device for sudo mode
 RDSK := @
 MMD := sudo $(MMD)
 MCOPY := sudo $(MCOPY)
@@ -70,13 +71,22 @@ sizing: images/efikit/.all images/$(OS)/.all
 %.all: %/Makefile
 	$(MAKE) -C $(@D) all
 
+# ks expansion rule
+kickstarts/%.ks: kickstarts/Makefile
+	$(MAKE) -C $(@D) $(@F)
+
 # create a fat32 filesystem - requires DEVICE
 mkfs: Makefile
 ifeq ("$(findstring @,$(DEVICE)$(RDSK))","")
 	$(MKFS)
 else
+ifeq ("$(findstring @,$(RDSK))","")
 	# we were handed a file + offset - try having guestfish format it.
 	guestfish -a $(GFISH_DEV) run : mkfs vfat /dev/sda1
+else
+	# ooh a real disk!
+	$(MKFS)
+endif
 endif
 
 # copy the efikit to a pre-formatted image - requires DEVICE
