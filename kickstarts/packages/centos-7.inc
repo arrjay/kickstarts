@@ -1,5 +1,6 @@
-@^minimal-environment
+@^minimal
 
 chrony
 avahi
 screen
+epel-release
