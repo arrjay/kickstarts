@@ -47,7 +47,7 @@ reboot
 rootpw --iscrypted \$6\$m95xGSDD7uy.OlhR\$1fkOb4IJhARxPZtuc7Mx85tHBY0nf9eEmEE7Zw4Xweh1M4n5kUZ/Ny7xPACUHHfbKNz3dFoxbOurCWpD89YPs.
 
 # system timezone
-timezone America/New_York --isUtc
+timezone America/Los_Angeles --isUtc
 
 EOF
 
