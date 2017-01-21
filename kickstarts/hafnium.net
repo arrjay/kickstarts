@@ -1,0 +1,4 @@
+network  --bootproto=dhcp --device=enp3s0 --ipv6=auto --noipv6
+network  --bootproto=dhcp --device=enp2s0f0 --onboot=off --ipv6=auto
+network  --bootproto=dhcp --device=enp2s0f1 --onboot=off --ipv6=auto
+network  --hostname=hafnium.produxi.net

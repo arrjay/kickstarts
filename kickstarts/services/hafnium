@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# standard stuff
+cat services/standard.inc
+
+# hardware stuff
+cat services/hardware.inc
