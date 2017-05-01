@@ -36,10 +36,11 @@ services --enabled="lldpad,chronyd"
 # timezone
 timezone America/Los_Angeles --isUtc
 
+# partitioning is calulated in %pre
 %include /tmp/part-include
 
 %packages
-@^minimal
+@^minimal-environment
 @core
 chrony
 kexec-tools
@@ -101,24 +102,26 @@ done
 } > /tmp/repo-include
 
 wipefs -a /dev/${disk}
-parted /dev/${disk} mklabel gpt
-parted /dev/${disk} mkpart primary 1m 5m
-parted /dev/${disk} mkpart '"EFI System Partition"' 5m 300m
-parted /dev/${disk} mkpart primary 300m 800m
-parted /dev/${disk} mkpart primary 800m 100%
-parted /dev/${disk} set 2 boot on
+#parted /dev/${disk} mklabel gpt
+#parted /dev/${disk} mkpart primary 1m 5m
+#parted /dev/${disk} mkpart '"EFI System Partition"' 5m 300m
+#parted /dev/${disk} mkpart primary 300m 800m
+#parted /dev/${disk} mkpart primary 800m 100%
+#parted /dev/${disk} set 2 boot on
 
-mkfs.vfat -F32 /dev/${disk}2
+#mkfs.vfat -F32 /dev/${disk}2
 
 {
-  printf 'part biosboot --fstype=biosboot --onpart=%s1\n' "${disk}"
-  printf 'part /boot/efi --fstype=efi --fsoptions="umask=0077,shortname=winnt" --onpart=%s2 --noformat\n' "${disk}"
-  printf 'part /boot --fstype=ext4 --onpart=%s3\n' "${disk}"
-  printf 'part pv.0 --onpart=%s4 --encrypted --passphrase=weaksauce\n' "${disk}"
-  printf 'volgroup fedora_holmium --pesize=4096 pv.0\n'
-  printf 'logvol swap --fstype='swap' --size=8192 --name=swap --vgname=fedora_holmium\n'
-  printf 'logvol / --fstype='xfs' --size=36864 --name=root --vgname=fedora_holmium\n'
-  printf 'logvol /var/lib/libvirt --fstype='xfs' --size=16384 --vgname=fedora_holmium\n'
+  printf 'bootloader --location=mbr --boot-drive=%s --append="quiet pci-stub.ids=1002:6738,1002:aa88,1033:0194,1b4b:9230,1912:0014"\n' "${disk}"
+  printf 'clearpart --none --initlabel\n'
+  printf 'part biosboot --fstype="biosboot" --ondisk=%s\n' "${disk}"
+  printf 'part /boot/efi --fstype="efi" --ondisk=%s --size=200 --fsoptions="umask=0077,shortname=winnt"\n' "${disk}"
+  printf 'part pv.721 --fstype="lvmpv" --ondisk=%s --size=32768 --grow --encrypted --passphrase=weaksauce\n' "${disk}"
+  printf 'part /boot --fstype="ext4" --ondisk=%s --size=1024\n' "${disk}"
+  printf 'volgroup fedora_holmium --pesize=4096 pv.721\n'
+  printf 'logvol swap  --fstype="swap" --size=2048 --name=swap --vgname=fedora_holmium\n'
+  printf 'logvol /var/lib/libvirt  --fstype="ext4" --size=9216 --name=var_lib_libvirt --vgname=fedora_holmium\n'
+  printf 'logvol /  --fstype="ext4" --size=18432 --name=root --vgname=fedora_holmium\n'
 } > /tmp/part-include
 
 printf 'export disk="%s"\nexport mirroruri="%s"\n' "${disk}" "${mirroruri}" > /tmp/post-vars
@@ -138,10 +141,10 @@ else
 fi
 
 # either way, set the disk flags correctly.
-parted /dev/${disk} disk_set pmbr_boot off
-parted /dev/${disk} set 2 boot on
+#parted /dev/${disk} disk_set pmbr_boot off
+#parted /dev/${disk} set 1 boot on
 
-chroot /mnt/sysimage rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+chroot /mnt/sysimage rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-25-fedora
 
 printf '[fedora]\nbaseurl=%s/fedora/releases/$releasever/Everything/$basearch/os\ngpgcheck=1\n' "${mirroruri}" > /mnt/sysimage/etc/yum.repos.d/fedora.repo
 printf '[updates]\nbaseurl=%s/fedora/updates/$releasever/$basearch/\ngpgcheck=1\n' "${mirroruri}" >> /mnt/sysimage/etc/yum.repos.d/fedora-updates.repo
