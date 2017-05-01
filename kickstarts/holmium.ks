@@ -71,7 +71,7 @@ xauth
 
 %end
 
-%addon com_redhat_kdump --enable --reserve-mb='auto'
+%addon com_redhat_kdump --enable
 
 %end
 
@@ -100,6 +100,7 @@ done
   printf 'repo --name=everything --baseurl="%s/fedora/releases/25/Everything/x86_64/os"\n' "${mirroruri}"
 } > /tmp/repo-include
 
+wipefs -a /dev/${disk}
 parted /dev/${disk} mklabel gpt
 parted /dev/${disk} mkpart primary 1m 5m
 parted /dev/${disk} mkpart '"EFI System Partition"' 5m 300m
