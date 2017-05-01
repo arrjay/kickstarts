@@ -1,4 +1,4 @@
-source = http://mirrors.kernel.org/fedora/releases/23/Server/x86_64/os/EFI/BOOT
+source = http://mko.wcs.bbxn.us/fedora/releases/25/Server/x86_64/os/EFI/BOOT
 
 all: unicode.pf2 grubx64.efi MokManager.efi BOOTX64.EFI
 
