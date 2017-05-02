@@ -149,4 +149,20 @@ chroot /mnt/sysimage rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-25-fedora
 printf '[fedora]\nbaseurl=%s/fedora/releases/$releasever/Everything/$basearch/os\ngpgcheck=1\n' "${mirroruri}" > /mnt/sysimage/etc/yum.repos.d/fedora.repo
 printf '[updates]\nbaseurl=%s/fedora/updates/$releasever/$basearch/\ngpgcheck=1\n' "${mirroruri}" >> /mnt/sysimage/etc/yum.repos.d/fedora-updates.repo
 
+# NOTE: this runs outside the chroot against the 'live' nm, then saves over files
+nmcli con add type bridge ifname uplink
+nmcli con modify bridge-uplink bridge.stp no
+nmcli con del enp6s0u1
+nmcli con add type bridge-slave ifname enp6s0u1 master bridge-uplink
+
+nmcli con add type bridge ifname netmgmt
+nmcli con modify bridge-netmgmt bridge.stp no
+echo 'BOOTPROTO=none' >> /etc/sysconfig/network-scripts/ifcfg-bridge-netmgmt
+nmcli con reload
+nmcli con down bridge-netmgmt
+nmcli con up bridge-netmgmt
+
+rm -rf /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-*
+cp -p /etc/sysconfig/network-scripts/ifcfg-* /mnt/sysimage/etc/sysconfig/network-scripts/
+
 %end
