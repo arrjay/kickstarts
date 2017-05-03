@@ -150,17 +150,57 @@ printf '[fedora]\nbaseurl=%s/fedora/releases/$releasever/Everything/$basearch/os
 printf '[updates]\nbaseurl=%s/fedora/updates/$releasever/$basearch/\ngpgcheck=1\n' "${mirroruri}" >> /mnt/sysimage/etc/yum.repos.d/fedora-updates.repo
 
 # NOTE: this runs outside the chroot against the 'live' nm, then saves over files
+
+# rearrange usb nic
 nmcli con add type bridge ifname uplink
 nmcli con modify bridge-uplink bridge.stp no
 nmcli con del enp6s0u1
 nmcli con add type bridge-slave ifname enp6s0u1 master bridge-uplink
 
-nmcli con add type bridge ifname netmgmt
-nmcli con modify bridge-netmgmt bridge.stp no
-echo 'BOOTPROTO=none' >> /etc/sysconfig/network-scripts/ifcfg-bridge-netmgmt
+# k/v for vlan[nr]=bridge. we don't use vlans less than 3.
+vlan[4]=netmgmt
+vlan[5]=standard
+vlan[7]=guest
+vlan[66]=transit
+vlan[70]=restricted
+# vlan[100]=virthost - manually defined as we give IPs here
+vlan[303]=dmz
+vlan[606]=chaos
+vlan[999]=iot
+vlan[2000]=pln
+vlan[2002]=wext
+
+# create our vm bridges
+for br in "${vlan[@]}" ; do
+  nmcli con add type bridge ifname "${br}"
+  nmcli con modify bridge-"${br}" bridge.stp no ipv4.method disabled ipv6.method ignore
+  sed -i -e '/BOOTPROTO.*/d' /etc/sysconfig/network-scripts/ifcfg-bridge-"${br}"
+  echo 'BOOTPROTO=none' >> /etc/sysconfig/network-scripts/ifcfg-bridge-"${br}"
+  nmcli con reload
+  nmcli con down bridge-"${br}"
+  nmcli con up bridge-"${br}"
+done
+
+# create the virthosts bridge (which we bind an IP to)
+
+# rearrange onboard nic
+nmcli con modify enp7s0 ipv4.method disabled ipv6.method ignore
+sed -i -e 's/BOOTPROTO.*//g' /etc/sysconfig/network-scripts/ifcfg-enp7s0
+echo 'BOOTPROTO=none' >> /etc/sysconfig/network-scripts/ifcfg-enp7s0
 nmcli con reload
-nmcli con down bridge-netmgmt
-nmcli con up bridge-netmgmt
+nmcli con down enp7s0
+nmcli con up enp7s0
+
+# create vlans and glue to bridges - note connection.master is an ifname here
+for v in "${!vlan[@]}" ; do
+  nmcli con add type vlan con-name vlan-"${vlan[$v]}" dev enp7s0 id "${v}"
+  nmcli con modify vlan-"${vlan[$v]}" ipv4.method disabled ipv6.method ignore connection.slave-type bridge connection.master "${vlan[$v]}"
+  sed -i -e 's/BOOTPROTO.*//g' /etc/sysconfig/network-scripts/ifcfg-vlan-"${vlan[$v]}"
+  echo 'BOOTPROTO=none' >> /etc/sysconfig/network-scripts/ifcfg-vlan-"${vlan[$v]}"
+  nmcli con reload
+  nmcli con down vlan-"${vlan[$v]}"
+  nmcli con up vlan-"${vlan[$v]}"
+done
 
 rm -rf /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-*
 cp -p /etc/sysconfig/network-scripts/ifcfg-* /mnt/sysimage/etc/sysconfig/network-scripts/
