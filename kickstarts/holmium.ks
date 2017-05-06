@@ -230,7 +230,8 @@ rm -rf /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-*
 cp -p /etc/sysconfig/network-scripts/ifcfg-* /mnt/sysimage/etc/sysconfig/network-scripts/
 
 # configure firewalld direct rule for vmm
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 -o vmm -j DROP
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 --logical-in vmm -j DROP
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 1 --logical-out vmm -j DROP
 
 # configure dnsmasq
 cat << EOF > /mnt/sysimage/etc/dnsmasq.conf
