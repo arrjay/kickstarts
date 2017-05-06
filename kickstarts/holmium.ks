@@ -202,7 +202,57 @@ for v in "${!vlan[@]}" ; do
   nmcli con up vlan-"${vlan[$v]}"
 done
 
+# create a new zone in firewalld...
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --new-zone vmm
+
+# create the vmm bridge
+nmcli con add type bridge ifname vmm
+nmcli con modify bridge-vmm bridge.stp no ipv4.method manual ipv6.method ignore ipv4.addresses 192.168.128.129/25
+nmcli con up bridge-vmm
+echo 'ZONE=vmm' >> /etc/sysconfig/network-scripts/ifcfg-bridge-vmm
+
+# copy all that to the new system
 rm -rf /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-*
 cp -p /etc/sysconfig/network-scripts/ifcfg-* /mnt/sysimage/etc/sysconfig/network-scripts/
+
+# configure firewalld direct rule for vmm
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 -o vmm -j DROP
+
+# configure dnsmasq
+cat << EOF > /mnt/sysimage/etc/dnsmasq.conf
+port=0
+
+interface=vmm
+
+bind-interfaces
+
+no-hosts
+
+dhcp-range=192.168.128.130,192.168.128.254,30m
+
+dhcp-option=3
+dhcp-option=6
+dhcp-option=12
+dhcp-option=42,0.0.0.0
+dhcp-option=vendor:BBXN,1,0.0.0.0
+
+dhcp-authoritative
+EOF
+
+# enable dnsmasq
+ln -sf /usr/lib/systemd/system/dnsmasq.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/dnsmasq.service
+
+mkdir -p /mnt/sysimage/etc/systemd/system/dnsmasq.service.d
+
+cat << EOF > /mnt/sysimage/etc/systemd/system/dnsmasq.service.d/override.conf 
+[Service]
+RestartSec=1s
+Restart=on-failure
+EOF
+
+# configure firewall for dnsmasq to only allow (dhcp), 123 (ntp), 3493 (nut) on vmm
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service dhcp
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service ntp
+chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
 
 %end
