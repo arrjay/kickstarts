@@ -211,6 +211,20 @@ nmcli con modify bridge-vmm bridge.stp no ipv4.method manual ipv6.method ignore 
 nmcli con up bridge-vmm
 echo 'ZONE=vmm' >> /etc/sysconfig/network-scripts/ifcfg-bridge-vmm
 
+# create a dummy device so that the vmm bridge is always 'up'
+{
+  printf '#!/bin/sh\n'
+  printf '[ "${1}" != "vmm" ] && exit 0\n'
+  printf 'case "${2}" in\n'
+  printf ' "up")\n'
+  printf '  /usr/sbin/ip link add vmm-dummy type dummy\n'
+  printf '  /usr/sbin/ip link set dev vmm-dummy up\n'
+  printf '  /usr/sbin/ip link set dev vmm-dummy master vmm\n'
+  printf '  ;;\n'
+  printf 'esac\n'
+} > /mnt/sysimage/etc/NetworkManager/dispatcher.d/99-vmm
+chmod 0755 /mnt/sysimage/etc/NetworkManager/dispatcher.d/99-vmm
+
 # copy all that to the new system
 rm -rf /mnt/sysimage/etc/sysconfig/network-scripts/ifcfg-*
 cp -p /etc/sysconfig/network-scripts/ifcfg-* /mnt/sysimage/etc/sysconfig/network-scripts/
