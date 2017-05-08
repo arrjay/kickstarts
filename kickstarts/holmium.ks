@@ -265,6 +265,12 @@ RestartSec=1s
 Restart=on-failure
 EOF
 
+# configure chronyd
+{
+  printf 'allow 192.168.128.128/25\n'
+  printf 'bindaddress 192.168.128.129\n'
+} >> /etc/chrony.conf
+
 # configure firewall for dnsmasq to only allow (dhcp), 123 (ntp), 3493 (nut) on vmm
 chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service dhcp
 chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service ntp
